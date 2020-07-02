@@ -7,9 +7,21 @@ import argparse
 import cv2
 import os
 import glob
-
+from pytesseract import Output
+import re
+import enchant
 from imutils.object_detection import non_max_suppression
 import pytesseract
+import string
+
+
+
+english_dictionary = enchant.Dict("en_US")
+
+
+def hasNumbers(inputString):
+	return bool(re.search(r'\d', inputString))
+
 
 def decode_predictions(scores, geometry):
 	# grab the number of rows and columns from the scores volume, then
@@ -116,8 +128,6 @@ images = glob.glob(data_path)
 
 for img in range(len(images)):
 	image = cv2.imread(images[img])
-	cv2.imshow("Output", image)
-	cv2.waitKey(0)
 
 	# load the input image and construct an input blob for the image
 	# by resizing to a fixed 300x300 pixels and then normalizing it
@@ -139,7 +149,7 @@ for img in range(len(images)):
 
 		# filter out weak detections by ensuring the `confidence` is
 		# greater than the minimum confidence
-		if confidence > 0.5:
+		if confidence > 0.8:
 			# compute the (x, y)-coordinates of the bounding box for the
 			# object
 			box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
@@ -152,6 +162,37 @@ for img in range(len(images)):
 			# cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
 
 			image[startY:endY, startX:endX] = face
+
+	rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+	results = pytesseract.image_to_data(rgb, output_type=Output.DICT)
+	# loop over each of the individual text localizations
+	for i in range(0, len(results["text"])):
+		# extract the bounding box coordinates of the text region from
+		# the current result
+		x = results["left"][i]
+		y = results["top"][i]
+		w = results["width"][i]
+		h = results["height"][i]
+
+		# extract the OCR text itself along with the confidence of the
+		# text localization
+		text = results["text"][i]
+		conf = int(results["conf"][i])
+
+		# filter out weak confidence text localizations
+		if conf > 80:
+			text = re.sub(r'[^\w\s]','',text)
+			if text != "":
+				
+				if not english_dictionary.check(text) or hasNumbers(text):
+					print("Confidence: {}".format(conf))
+					print("Text: {}".format(text))
+					print("")
+					cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 0), -1)
+					cv2.putText(image, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX,
+						1.2, (0, 0, 255), 3)
+
+
 
 	filename = 'censored/censored_image{}.jpg'.format(img)
 	print(filename)

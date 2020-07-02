@@ -76,10 +76,12 @@ images = glob.glob(data_path)
 print("[INFO] loading EAST text detector...")
 net = cv2.dnn.readNet('frozen_east_text_detection.pb')
 
+
+
 for img in range(len(images)):
 # load the input image and grab the image dimensions
 	image = cv2.imread(images[img])
-	print(image)
+	# print(image)
 	orig = image.copy()
 	(origH, origW) = image.shape[:2]
 
@@ -130,8 +132,8 @@ for img in range(len(images)):
 		# in order to obtain a better OCR of the text we can potentially
 		# apply a bit of padding surrounding the bounding box -- here we
 		# are computing the deltas in both the x and y directions
-		dX = int((endX - startX) * 0.0)
-		dY = int((endY - startY) * 0.0)
+		dX = int((endX - startX) * 0.05)
+		dY = int((endY - startY) * 0.05)
 
 		# apply padding to each side of the bounding box, respectively
 		startX = max(0, startX - dX)
@@ -156,7 +158,7 @@ for img in range(len(images)):
 
 	# sort the results bounding box coordinates from top to bottom
 	results = sorted(results, key=lambda r:r[0][1])
-
+	output = orig.copy()
 	# loop over the results
 	for ((startX, startY, endX, endY), text) in results:
 		# display the text OCR'd by Tesseract
@@ -168,12 +170,12 @@ for img in range(len(images)):
 		# using OpenCV, then draw the text and a bounding box surrounding
 		# the text region of the input image
 		text = "".join([c if ord(c) < 128 else "" for c in text]).strip()
-		output = orig.copy()
+		# output = orig.copy()
 		cv2.rectangle(output, (startX, startY), (endX, endY),
 			(0, 0, 255), 2)
 		cv2.putText(output, text, (startX, startY - 20),
 			cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
 
 		# show the output image
-		cv2.imshow("Text Detection", output)
-		cv2.waitKey(0)
+	cv2.imshow("Text Detection", output)
+	cv2.waitKey(0)
