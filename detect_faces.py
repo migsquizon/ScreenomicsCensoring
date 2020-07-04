@@ -149,7 +149,7 @@ for img in range(len(images)):
 
 		# filter out weak detections by ensuring the `confidence` is
 		# greater than the minimum confidence
-		if confidence > 0.8:
+		if confidence > 0.5:
 			# compute the (x, y)-coordinates of the bounding box for the
 			# object
 			box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
@@ -190,7 +190,7 @@ for img in range(len(images)):
 					print("")
 					cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 0), -1)
 					cv2.putText(image, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX,
-						1.2, (0, 0, 255), 3)
+						1, (0, 0, 255), 2)
 
 
 
