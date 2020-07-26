@@ -360,13 +360,18 @@ def detect_face(img, minsize, PNet, RNet, ONet, threshold, fastresize, factor):
 
 
 def drawBoxes(im, boxes):
-    x1 = boxes[:,0]
-    y1 = boxes[:,1]
-    x2 = boxes[:,2]
-    y2 = boxes[:,3]
-    for i in range(x1.shape[0]):
-        cv2.rectangle(im, (int(x1[i]), int(y1[i])), (int(x2[i]), int(y2[i])), (0,255,0), 1)
-    return im
+	x1 = boxes[:,0]
+	y1 = boxes[:,1]
+	x2 = boxes[:,2]
+	y2 = boxes[:,3]
+	for i in range(x1.shape[0]):
+	#     cv2.rectangle(im, (int(x1[i]), int(y1[i])), (int(x2[i]), int(y2[i])), (0,255,0), 1)
+		print(x1,x2,y1,y2)
+		face = im[int(y1[i]):int(y2[i]), int(x1[i]):int(x2[i])]
+		face = anonymize_face_pixelate(face)
+		im[int(y1[i]):int(y2[i]), int(x1[i]):int(x2[i])] = face
+
+	return im
 
 def generateBoundingBox(map, reg, scale, t):
     stride = 2
