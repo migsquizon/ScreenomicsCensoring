@@ -651,8 +651,33 @@ for img in range(len(images)):
 
 	# 		image[startY:endY, startX:endX] = face
 
-	rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-	results = pytesseract.image_to_data(rgb, output_type=Output.DICT)
+	image = cv2.resize(image, None, fx=1.2, fy=1.2,interpolation=cv2.INTER_CUBIC )
+	kernel = np.ones((1, 1), np.uint8)
+	image = cv2.dilate(image, kernel, iterations=1)
+	image = cv2.erode(image, kernel, iterations=1)
+	# gray = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+	# gray = cv2.equalizeHist(gray)
+
+	cv2.threshold(cv2.GaussianBlur(gray, (5, 5), 0), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
+	cv2.threshold(cv2.bilateralFilter(gray, 5, 75, 75), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
+	cv2.threshold(cv2.medianBlur(gray, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
+	cv2.adaptiveThreshold(cv2.GaussianBlur(gray, (5, 5), 0), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+
+	cv2.adaptiveThreshold(cv2.bilateralFilter(gray, 9, 75, 75), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+
+	cv2.adaptiveThreshold(cv2.medianBlur(gray, 3), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+
+	# cv2.imshow('image', image) 
+	  
+	#waits for user to press any key  
+	#(this is necessary to avoid Python kernel form crashing) 
+	# cv2.waitKey(0)
+
+	results = pytesseract.image_to_data(gray, output_type=Output.DICT)
 	# loop over each of the individual text localizations
 	for i in range(0, len(results["text"])):
 		# extract the bounding box coordinates of the text region from
@@ -680,8 +705,8 @@ for img in range(len(images)):
 					tex = anonymize_face_pixelate(tex)
 					image[y:y+h, x:x+w] = tex
 					# cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 0), -1)
-					# cv2.putText(image, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX,
-					# 	1, (0, 0, 255), 2)
+					cv2.putText(image, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX,
+						1, (0, 0, 255), 2)
 
 
 
