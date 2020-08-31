@@ -16,9 +16,11 @@ from PIL import Image
 import numpy as np
 from matplotlib import pyplot as plt
 from tqdm.notebook import tqdm
+import spacy
 
 
 
+nlp = spacy.load("en_core_web_sm")
 english_dictionary = enchant.Dict("en_US")
 
 
@@ -64,7 +66,7 @@ def drawBoxes(im, boxes):
 	y2 = boxes[:,3]
 	for i in range(x1.shape[0]):
 	#     cv2.rectangle(im, (int(x1[i]), int(y1[i])), (int(x2[i]), int(y2[i])), (0,255,0), 1)
-		print(x1,x2,y1,y2)
+		# print(x1,x2,y1,y2)
 		face = im[int(y1[i]):int(y2[i]), int(x1[i]):int(x2[i])]
 		face = anonymize_face_pixelate(face)
 		im[int(y1[i]):int(y2[i]), int(x1[i]):int(x2[i])] = face
@@ -91,78 +93,92 @@ factor = 0.709
 
 
 for img in range(len(images)):
-    image = cv2.imread(images[img])
+	image = cv2.imread(images[img])
 
 
-    img_matlab = image.copy()
-    tmp = img_matlab[:,:,2].copy()
-    img_matlab[:,:,2] = img_matlab[:,:,0]
-    img_matlab[:,:,0] = tmp
+	img_matlab = image.copy()
+	tmp = img_matlab[:,:,2].copy()
+	img_matlab[:,:,2] = img_matlab[:,:,0]
+	img_matlab[:,:,0] = tmp
 
-    # boundingboxes, points = detect_face(img_matlab, minsize, PNet, RNet, ONet, threshold, False, factor)
-    # Detect face
-    boxes, probs, landmarks = mtcnn.detect(image, landmarks=True)
-    # print(boxes)
-    if boxes is not None:
-        # print(boxes)
-        image = drawBoxes(image, boxes)
-
-
-    image = cv2.resize(image, None, fx=1.2, fy=1.2,interpolation=cv2.INTER_CUBIC )
-    kernel = np.ones((1, 1), np.uint8)
-    image = cv2.dilate(image, kernel, iterations=1)
-    image = cv2.erode(image, kernel, iterations=1)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    cv2.threshold(cv2.GaussianBlur(gray, (5, 5), 0), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-
-    cv2.threshold(cv2.bilateralFilter(gray, 5, 75, 75), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-
-    cv2.threshold(cv2.medianBlur(gray, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-
-    cv2.adaptiveThreshold(cv2.GaussianBlur(gray, (5, 5), 0), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
-
-    cv2.adaptiveThreshold(cv2.bilateralFilter(gray, 9, 75, 75), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
-
-    cv2.adaptiveThreshold(cv2.medianBlur(gray, 3), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+	# boundingboxes, points = detect_face(img_matlab, minsize, PNet, RNet, ONet, threshold, False, factor)
+	# Detect face
+	boxes, probs, landmarks = mtcnn.detect(image, landmarks=True)
+	# print(boxes)
+	if boxes is not None:
+		# print(boxes)
+		image = drawBoxes(image, boxes)
 
 
-    results = pytesseract.image_to_data(gray, output_type=Output.DICT)
-    for i in range(0, len(results["text"])):
-    	# extract the bounding box coordinates of the text region from
-    	# the current result
-    	x = results["left"][i]
-    	y = results["top"][i]
-    	w = results["width"][i]
-    	h = results["height"][i]
+	image = cv2.resize(image, None, fx=1.2, fy=1.2,interpolation=cv2.INTER_CUBIC )
+	kernel = np.ones((1, 1), np.uint8)
+	image = cv2.dilate(image, kernel, iterations=1)
+	image = cv2.erode(image, kernel, iterations=1)
+	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    	# extract the OCR text itself along with the confidence of the
-    	# text localization
-    	text = results["text"][i]
-    	conf = int(results["conf"][i])
-    	# filter out weak confidence text localizations
-    	if conf > 80:
-    		text = re.sub(r'[^\w\s]','',text)
-    		if text != "":
-    			
-    			if not english_dictionary.check(text) or hasNumbers(text):
-    				print("Confidence: {}".format(conf))
-    				print("Text: {}".format(text))
-    				print("")
+	cv2.threshold(cv2.GaussianBlur(gray, (5, 5), 0), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
-    				tex = image[y:y+h, x:x+w]
-    				tex = anonymize_face_pixelate(tex)
-    				image[y:y+h, x:x+w] = tex
-    				# cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 0), -1)
-    				cv2.putText(image, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX,
-    					1, (0, 0, 255), 2)
+	cv2.threshold(cv2.bilateralFilter(gray, 5, 75, 75), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
+	cv2.threshold(cv2.medianBlur(gray, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
+	cv2.adaptiveThreshold(cv2.GaussianBlur(gray, (5, 5), 0), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+
+	cv2.adaptiveThreshold(cv2.bilateralFilter(gray, 9, 75, 75), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+
+	cv2.adaptiveThreshold(cv2.medianBlur(gray, 3), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
 
 
+	results = pytesseract.image_to_data(gray, output_type=Output.DICT)
+	for i in range(0, len(results["text"])):
+		# extract the bounding box coordinates of the text region from
+		# the current result
+		x = results["left"][i]
+		y = results["top"][i]
+		w = results["width"][i]
+		h = results["height"][i]
 
-    filename = 'censored/censored_image{}.jpg'.format(img)
-    print(filename)
-    if not cv2.imwrite(filename,image):
-    	raise Exception("Could not write image")
+		# extract the OCR text itself along with the confidence of the
+		# text localization
+		text = results["text"][i]
+		conf = int(results["conf"][i])
+		# filter out weak confidence text localizations
+		if conf > 80:
+			# print(text)
+			text = re.sub(r'[^\w\s]','',text)
+			if text != "":
+				# print(text)
+				doc = nlp(text)
+				# print(text,doc.ents,len(doc.ents))
+				if(len(doc.ents)==0):
+					if not english_dictionary.check(text) or hasNumbers(text):
+						# print("Confidence: {}".format(conf))
+						# print("Text: {}".format(text))
+						# print("")
+						tex = image[y:y+h, x:x+w]
+						tex = anonymize_face_pixelate(tex)
+						image[y:y+h, x:x+w] = tex
+						cv2.putText(image, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX,
+							1, (0, 0, 255), 2)
+					
+				else:
+					for ent in doc.ents:
+						print(ent.text, ent.label_)
+						if(ent.label_=='PERSON') or hasNumbers(text) or not english_dictionary.check(text):
+							tex = image[y:y+h, x:x+w]
+							tex = anonymize_face_pixelate(tex)
+							image[y:y+h, x:x+w] = tex
+							# cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 0), -1)
+							cv2.putText(image, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX,
+								1, (0, 0, 255), 2)
+
+
+
+
+	filename = 'censored/censored_image{}.jpg'.format(img)
+	print(filename)
+	if not cv2.imwrite(filename,image):
+		raise Exception("Could not write image")
 	
 
 	
